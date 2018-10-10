@@ -292,6 +292,7 @@ class Converter(object):
         """Instantiate an attrs class from a mapping (dict)."""
         # For public use.
         conv_obj = dict(obj)  # Dict of converted parameters.
+        kw_args = []
         dispatch = self._structure_func.dispatch
         for a in cl.__attrs_attrs__:  # type: ignore
             # We detect the type by metadata.
@@ -305,8 +306,13 @@ class Converter(object):
             except KeyError:
                 continue
             conv_obj[name] = dispatch(type_)(val, type_)
+            if not a.init:
+                kw_args.append((name, conv_obj.pop(name)))
 
-        return cl(**conv_obj)  # type: ignore
+        obj = cl(**conv_obj)
+        for name, value in kw_args:
+            setattr(obj, name, value)
+        return obj
 
     def _structure_list(self, obj, cl):
         """Convert an iterable to a potentially generic list."""
